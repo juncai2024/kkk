@@ -12,7 +12,6 @@ for filename in os.listdir(folder_path):
         # 提取文件名和扩展名
         base_name = match.group(1)
         extension = '.xlsx'
-
         # 构建新文件名
         new_filename = base_name + extension
 

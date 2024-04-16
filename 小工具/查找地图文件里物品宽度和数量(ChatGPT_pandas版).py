@@ -3,7 +3,7 @@ import json
 import pandas as pd
 
 # 指定文件夹路径
-folder_path = r'D:\source\ht_static\地图备份\地图0311IOS困难关修改'
+folder_path = r'D:\source\ht009_new\Product\Setting\Cfg012'
 
 # 创建一个空的DataFrame
 df = pd.DataFrame(columns=['File Name', 'Width', 'Num'])
