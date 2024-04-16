@@ -23,7 +23,6 @@ for filename in os.listdir(folder_path):
         os.rename(old_file_path, new_file_path)
 
         print(f'Renamed {filename} to {new_filename}')
-    else:
-        print(f'Skipped {filename} (does not match the pattern)')
+
 
 print('All files renamed successfully')
