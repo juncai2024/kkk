@@ -1,10 +1,10 @@
 import random
 
 def simulate_draws():
-    numbers = [1, 2, 3, 4, 5, 6]
-    probabilities = [0.4, 0.2, 0.1, 0.1, 0.05, 0.05]
+    numbers = [0, 1, 2, 3, 4, 5,6]
+    probabilities = [0.2, 0.1, 0.1, 0.3, 0.2, 0.1, 0]
 
-    total_draws = 50
+    total_draws = 850
     draws_result = {num: 0 for num in numbers}
 
     for _ in range(total_draws):
