@@ -1,31 +1,58 @@
 import os
+import pandas as pd
 
-用户输入0 = input(r'请输入文件夹路径(例如 C:\abc)：')
-用户输入1 = input('请输入要添加或删除的名字：')
-用户输入2 = int(input('添加请按1，删除请按2：'))
+def add_prefix(folder_path):
+    prefix = input("请输入要添加的前缀字符：")
+    for filename in os.listdir(folder_path):
+        old_filepath = os.path.join(folder_path, filename)
+        if os.path.isfile(old_filepath):
+            new_filename = prefix + filename
+            new_filepath = os.path.join(folder_path, new_filename)
+            os.rename(old_filepath, new_filepath)
 
+def add_suffix(folder_path):
+    suffix = input("请输入要添加的后缀字符：")
+    for filename in os.listdir(folder_path):
+        old_filepath = os.path.join(folder_path, filename)
+        if os.path.isfile(old_filepath):
+            filename_parts = os.path.splitext(filename)
+            new_filename = filename_parts[0] + suffix + filename_parts[1]
+            new_filepath = os.path.join(folder_path, new_filename)
+            os.rename(old_filepath, new_filepath)
 
-# 返回指定文件夹下的文件和文件夹的名字，返回是一个列表
-目录列表 = os.listdir(用户输入0)
+def rename_from_excel(folder_path, excel_path):
+    df = pd.read_excel(excel_path)
+    for index, row in df.iterrows():
+        old_filename = row['原文件名']
+        new_filename = row['修改后文件名']
+        old_filepath = os.path.join(folder_path, old_filename)
+        new_filepath = os.path.join(folder_path, new_filename)
+        if os.path.exists(new_filepath):
+            counter = 1
+            while os.path.exists(new_filepath):
+                name, extension = os.path.splitext(new_filename)
+                new_filename = f"{name}_{counter}{extension}"
+                new_filepath = os.path.join(folder_path, new_filename)
+                counter += 1
+        os.rename(old_filepath, new_filepath)
 
+def main():
+    folder_path = input("请输入要处理的文件夹路径：")
+    print("功能列表：")
+    print("1. 批量在文件名前加指定的前缀")
+    print("2. 批量在文件名后加后缀")
+    print("3. 读取excel列表，按excel列表里的文件名给文件夹里的文件重命名")
+    option = input("请选择功能(1/2/3)：")
 
-#遍历目录列表中的每一个数据
-for 遍历文件名 in 目录列表:
-
-    if 用户输入2 == 1:
-        新名字 = 用户输入1 + 遍历文件名
-        print(新名字)
-    elif 用户输入2 == 2:
-        前缀长度 = len(用户输入1)
-        新名字 = 遍历文件名[前缀长度:]
-        print(新名字)
+    if option == '1':
+        add_prefix(folder_path)
+    elif option == '2':
+        add_suffix(folder_path)
+    elif option == '3':
+        excel_path = input("请输入excel文件的路径：")
+        rename_from_excel(folder_path, excel_path)
     else:
-        print('输入错误')
-        break
+        print("无效的选项，请重新运行程序并输入正确的选项。")
 
-    os.chdir(用户输入0)   # 改变当前工作目录到指定路径
-    os.rename(遍历文件名,新名字) # 重命名
-
-
-
-
+if __name__ == "__main__":
+    main()
