@@ -36,13 +36,23 @@ def rename_from_excel(folder_path, excel_path):
                 counter += 1
         os.rename(old_filepath, new_filepath)
 
+def remove_chars(folder_path):
+    chars = input("请输入要删除的字符：")
+    for filename in os.listdir(folder_path):
+        old_filepath = os.path.join(folder_path, filename)
+        if os.path.isfile(old_filepath):
+            new_filename = filename.replace(chars, '')
+            new_filepath = os.path.join(folder_path, new_filename)
+            os.rename(old_filepath, new_filepath)
+
 def main():
     folder_path = input("请输入要处理的文件夹路径：")
     print("功能列表：")
     print("1. 批量在文件名前加指定的前缀")
     print("2. 批量在文件名后加后缀")
     print("3. 读取excel列表，按excel列表里的文件名给文件夹里的文件重命名")
-    option = input("请选择功能(1/2/3)：")
+    print("4. 删除文件名里的指定字符")
+    option = input("请选择功能(1/2/3/4)：")
 
     if option == '1':
         add_prefix(folder_path)
@@ -51,6 +61,8 @@ def main():
     elif option == '3':
         excel_path = input("请输入excel文件的路径：")
         rename_from_excel(folder_path, excel_path)
+    elif option == '4':
+        remove_chars(folder_path)
     else:
         print("无效的选项，请重新运行程序并输入正确的选项。")
 
