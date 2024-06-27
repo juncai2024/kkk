@@ -9,6 +9,6 @@ np.random.shuffle(numbers)
 df = pd.DataFrame(numbers, columns=['Numbers'])
 
 # 将 DataFrame 写入 Excel 文件的A列
-df.to_excel(r'D:\set_excel\test\test1.xlsx', index=False, header=None)
+df.to_excel(r'D:\work\test1.xlsx', index=False, header=None)
 
 print("数据处理完毕")
