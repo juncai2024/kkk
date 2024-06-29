@@ -1,7 +1,8 @@
 import random
 
+
 def simulate_draws():
-    numbers = [0, 1, 2, 3, 4, 5,6]
+    numbers = [0, 1, 2, 3, 4, 5, 6]
     probabilities = [0.2, 0.1, 0.1, 0.3, 0.2, 0.1, 0]
 
     total_draws = 850
@@ -12,6 +13,7 @@ def simulate_draws():
         draws_result[drawn_number] += 1
 
     return draws_result
+
 
 result = simulate_draws()
 print("抽取结果：", result)
