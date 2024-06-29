@@ -1,6 +1,7 @@
 import os
 import pandas as pd
 
+
 def add_prefix(folder_path):
     prefix = input("请输入要添加的前缀字符：")
     for filename in os.listdir(folder_path):
@@ -9,6 +10,7 @@ def add_prefix(folder_path):
             new_filename = prefix + filename
             new_filepath = os.path.join(folder_path, new_filename)
             os.rename(old_filepath, new_filepath)
+
 
 def add_suffix(folder_path):
     suffix = input("请输入要添加的后缀字符：")
@@ -19,6 +21,7 @@ def add_suffix(folder_path):
             new_filename = filename_parts[0] + suffix + filename_parts[1]
             new_filepath = os.path.join(folder_path, new_filename)
             os.rename(old_filepath, new_filepath)
+
 
 def rename_from_excel(folder_path, excel_path):
     df = pd.read_excel(excel_path)
@@ -36,6 +39,7 @@ def rename_from_excel(folder_path, excel_path):
                 counter += 1
         os.rename(old_filepath, new_filepath)
 
+
 def remove_chars(folder_path):
     chars = input("请输入要删除的字符：")
     for filename in os.listdir(folder_path):
@@ -44,6 +48,7 @@ def remove_chars(folder_path):
             new_filename = filename.replace(chars, '')
             new_filepath = os.path.join(folder_path, new_filename)
             os.rename(old_filepath, new_filepath)
+
 
 def main():
     folder_path = input("请输入要处理的文件夹路径：")
@@ -65,6 +70,7 @@ def main():
         remove_chars(folder_path)
     else:
         print("无效的选项，请重新运行程序并输入正确的选项。")
+
 
 if __name__ == "__main__":
     main()
