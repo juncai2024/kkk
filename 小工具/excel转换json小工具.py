@@ -36,7 +36,8 @@ def excel_to_json(excel_path):
                 return int(value)
             elif dtype == 'a':
                 if isinstance(value, str):
-                    return [item.strip() for item in value.split(',')]
+                    items = [item.strip() for item in value.split(',') if item.strip()]
+                    return items
                 else:
                     return value
             elif dtype == 'b':
