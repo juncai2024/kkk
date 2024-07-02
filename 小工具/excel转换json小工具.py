@@ -29,7 +29,10 @@ def excel_to_json(excel_path):
         elif dtype == 'n':
             return int(value)
         elif dtype == 'a':
-            return json.loads(value) if isinstance(value, str) else value
+            if isinstance(value, str):
+                return [item.strip() for item in value.split(',')]
+            else:
+                return value
         elif dtype == 'b':
             return bool(value)
         elif dtype == 'd':
