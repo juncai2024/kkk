@@ -4,7 +4,7 @@ import os
 
 
 def excel_to_json(excel_path):
-    # 读取Excel文件的所有工作表wwwwwww
+    # 读取Excel文件的所有工作表
     xls = pd.ExcelFile(excel_path)
 
     json_result = {}
