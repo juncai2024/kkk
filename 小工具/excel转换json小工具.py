@@ -3,15 +3,15 @@ import json
 import os
 
 
-def excel_to_json(excel_path):
+def excel_to_json(excel_path_js):
     # 读取Excel文件的所有工作表
-    xls = pd.ExcelFile(excel_path)
+    xls = pd.ExcelFile(excel_path_js)
 
     json_result = {}
 
     # 遍历所有工作表
     for sheet_name in xls.sheet_names:
-        df = pd.read_excel(excel_path, sheet_name=sheet_name, header=None)
+        df = pd.read_excel(excel_path_js, sheet_name=sheet_name, header=None)
 
         # 获取第一行作为字段名
         columns = df.iloc[0]
@@ -59,7 +59,7 @@ def excel_to_json(excel_path):
         json_result[sheet_name] = result
 
     # 输出JSON文件
-    json_path = os.path.splitext(excel_path)[0] + '.json'
+    json_path = os.path.splitext(excel_path_js)[0] + '.json'
     with open(json_path, 'w', encoding='utf-8') as f:
         json.dump(json_result, f, ensure_ascii=False, indent=4)
 
@@ -67,5 +67,5 @@ def excel_to_json(excel_path):
 
 
 if __name__ == "__main__":
-    excel_path = input("请输入Excel文件路径: ")
+    excel_path = input(r"请输入Excel文件路径: ")
     excel_to_json(excel_path)
