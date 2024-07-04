@@ -27,22 +27,22 @@ def excel_to_json(excel_path_js):
         data = df.iloc[2:].reset_index(drop=True)
 
         # 根据字段类型转换数据
-        def convert_type(value, dtype):
+        def convert_type(value, data_type):
             if pd.isnull(value):
                 return None
-            if dtype == 's':
+            if data_type == 's':
                 return str(value)
-            elif dtype == 'n':
+            elif data_type == 'n':
                 return int(value)
-            elif dtype == 'a':
+            elif data_type == 'a':
                 if isinstance(value, str):
                     items = [item.strip() for item in value.split(',') if item.strip()]
                     return items
                 else:
                     return value
-            elif dtype == 'b':
+            elif data_type == 'b':
                 return bool(value)
-            elif dtype == 'd':
+            elif data_type == 'd':
                 return json.loads(value) if isinstance(value, str) else value
             else:
                 return value
