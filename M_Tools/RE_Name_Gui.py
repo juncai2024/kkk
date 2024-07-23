@@ -1,7 +1,6 @@
 import os
 import pandas as pd
 import logging
-from datetime import datetime
 import tkinter as tk
 from tkinter import filedialog, messagebox
 import tkinter.simpledialog as simpledialog
