@@ -81,7 +81,7 @@ def remove_chars(folder_path, file_types, chars):
         to_rename = [f for f in os.listdir(folder_path) if
                      os.path.isfile(os.path.join(folder_path, f)) and f.split('.')[-1] in file_types]
 
-    preview_changes(to_rename, remove_chars=chars)
+    preview_changes(to_rename, rm_chars=chars)
     if not confirm_action("确认要删除指定字符吗？"):
         return
 
@@ -101,13 +101,13 @@ def rename_file(old_filepath, new_filepath):
         logging.error(f"Error renaming {old_filepath} to {new_filepath}: {e}")
 
 
-def preview_changes(file_list, prefix="", suffix="", remove_chars="", new_names=None):
+def preview_changes(file_list, prefix="", suffix="", rm_chars="", new_names=None):
     preview_text = "预览文件名更改：\n"
     for i, filename in enumerate(file_list):
         if new_names:
             new_filename = new_names[i]
         else:
-            new_filename = prefix + filename.replace(remove_chars, '') + suffix
+            new_filename = prefix + filename.replace(rm_chars, '') + suffix
         preview_text += f"{filename} -> {new_filename}\n"
     messagebox.showinfo("预览", preview_text)
 
