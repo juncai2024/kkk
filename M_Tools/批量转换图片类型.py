@@ -49,7 +49,7 @@ def convert_image_format(ip_dir, ip_format, op_format, save_opt, op_dir=None):
 
 # 用户输入
 input_dir = input("请输入包含图片的文件夹路径: ")
-input_format = input("请输入输入图片格式 (如: jpg, png, bmp): ").lower()
+input_format = input("请输入要转换的图片格式 (如: jpg, png, bmp): ").lower()
 output_format = input("请输入输出图片格式 (如: jpg, png, bmp, webp): ").lower()
 save_option = input("输入 '1' 保存到相同目录，输入 '2' 保存到不同目录: ")
 
