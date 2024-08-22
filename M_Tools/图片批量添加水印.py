@@ -44,4 +44,4 @@ def add_watermark(image_path, watermark_text="larry", font_size=36, position="bo
 folder_path = r"D:\study\test\cs"  # 替换为你的图片文件夹路径
 for filename in os.listdir(folder_path):
     if filename.lower().endswith(('png', 'jpg', 'jpeg')):
-        add_watermark(os.path.join(folder_path, filename), font_size=36, position="top_right") #修改position参数来控制水印的位置
+        add_watermark(os.path.join(folder_path, filename), font_size=36, position="top_right")
