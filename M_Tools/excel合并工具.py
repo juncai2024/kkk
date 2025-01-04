@@ -23,7 +23,7 @@ if excel_files:
         # 读取Excel文件数据
         excel_data = pd.read_excel(file_path)
 
-        # 将当前文件的数据合并到总数据中
+        # 将当前文件的数据合并到总数据中，这里默认axis = 0，就是纵向上合并，列数不变，ignore_index=True意思是重新生成索引
         all_data = pd.concat([all_data, excel_data], ignore_index=True)
 
     # 将合并后的数据保存到新的Excel文件
