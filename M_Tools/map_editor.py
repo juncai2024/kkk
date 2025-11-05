@@ -1,6 +1,8 @@
 import pygame
 import json
 import sys
+import tkinter as tk
+from tkinter import filedialog
 from typing import List, Tuple, Dict, Optional
 
 # 定义颜色
@@ -13,6 +15,19 @@ RED = (255, 0, 0)
 GREEN = (0, 255, 0)
 YELLOW = (255, 255, 0)
 DARK_GREEN = (0, 100, 0)
+PURPLE = (128, 0, 128)
+ORANGE = (255, 165, 0)
+CYAN = (0, 255, 255)
+MAGENTA = (255, 0, 255)
+LIME = (0, 255, 128)
+TEAL = (0, 128, 128)
+PINK = (255, 192, 203)
+MAROON = (128, 0, 0)
+NAVY = (0, 0, 128)
+OLIVE = (128, 128, 0)
+
+# 线条颜色列表
+LINE_COLORS = [BLUE, GREEN, PURPLE, ORANGE, CYAN, MAGENTA, LIME, TEAL, PINK, MAROON, NAVY, OLIVE]
 
 
 class MapEditor:
@@ -23,7 +38,6 @@ class MapEditor:
         self.grid_width = 10
         self.grid_height = 10
         self.cell_size = 40
-        self.line_color = BLUE
         self.start_color = RED
         self.default_color = GREEN
 
@@ -31,9 +45,11 @@ class MapEditor:
         self.sidebar_width = 250
         self.window_width = self.grid_width * self.cell_size + self.sidebar_width
         self.window_height = max(self.grid_height * self.cell_size, 450)
+        self.min_window_width = 600
+        self.min_window_height = 450
 
-        # 创建窗口
-        self.screen = pygame.display.set_mode((self.window_width, self.window_height))
+        # 创建可调整大小的窗口
+        self.screen = pygame.display.set_mode((self.window_width, self.window_height), pygame.RESIZABLE)
 
         # 初始化字体
         self.font = self.get_system_font()
@@ -90,7 +106,9 @@ class MapEditor:
                                    self.get_localized_text("清除所有线条", "Clear All Lines"))
         self.export_button = Button(sidebar_x + 10, 150, 230, 30,
                                     self.get_localized_text("导出为JSON", "Export to JSON"))
-        self.eraser_button = Button(sidebar_x + 10, 190, 230, 30, self.get_localized_text("橡皮擦模式", "Eraser Mode"))
+        self.import_button = Button(sidebar_x + 10, 190, 230, 30,
+                                    self.get_localized_text("导入JSON", "Import JSON"))
+        self.eraser_button = Button(sidebar_x + 10, 230, 230, 30, self.get_localized_text("橡皮擦模式", "Eraser Mode"))
 
         # 标签 - 位置在右侧面板
         self.width_label = self.font.render(self.get_localized_text("宽度:", "Width:"), True, WHITE)
@@ -101,13 +119,16 @@ class MapEditor:
         self.info2_label = self.font.render(
             self.get_localized_text("- 点击线条端点设置起点", "- Click endpoints to set start"), True, LIGHT_GRAY)
         self.info3_label = self.font.render(
-            self.get_localized_text("- 起点(1)：红色，默认(2)：绿色", "- Start(1): Red, Default(2): Green"), True,
+            self.get_localized_text("- 起点(1)：红色，不同线条不同颜色", "- Start(1): Red, Different colors for lines"), True,
             LIGHT_GRAY)
         self.info4_label = self.font.render(
             self.get_localized_text("- 橡皮擦模式下点击删除线条", "- Click to erase lines in Eraser Mode"), True,
             LIGHT_GRAY)
         self.info5_label = self.font.render(
             self.get_localized_text("- 格子显示坐标和编号", "- Cells show coordinates & numbers"), True, LIGHT_GRAY)
+        self.info6_label = self.font.render(
+            self.get_localized_text("- 可导入之前导出的JSON文件", "- Can import previously exported JSON files"), True,
+            LIGHT_GRAY)
 
     def get_localized_text(self, chinese_text, english_text):
         """获取本地化文本，如果中文显示有问题则使用英文"""
@@ -135,11 +156,20 @@ class MapEditor:
                 if value == 1:
                     pygame.draw.rect(self.screen, self.start_color, rect)
                 elif value == 2:
-                    pygame.draw.rect(self.screen, self.default_color, rect)
+                    # 查找该单元格所属的线条ID，使用对应的线条颜色
+                    line_id, _ = self.get_line_info((x, y))
+                    if line_id is not None:
+                        # 使用线条ID从颜色列表中选择颜色，如果颜色列表不够则循环使用
+                        color_index = line_id % len(LINE_COLORS)
+                        pygame.draw.rect(self.screen, LINE_COLORS[color_index], rect)
+                    else:
+                        pygame.draw.rect(self.screen, self.default_color, rect)
 
-                # 绘制网格坐标 (x,y)
-                coord_text = f"({x},{y})"
-                coord_surface = self.small_font.render(coord_text, True, BLACK)
+                # 绘制网格坐标 x,y
+                coord_text = f"{x},{y}"
+                # 创建比small_font小1个字号的字体
+                smaller_font = self.get_system_font(size=15)
+                coord_surface = smaller_font.render(coord_text, True, BLACK)
                 self.screen.blit(coord_surface, (x * self.cell_size + 2, y * self.cell_size + 2))
 
                 # 绘制线条编号（如果有）
@@ -171,12 +201,13 @@ class MapEditor:
         # 绘制标签
         self.screen.blit(self.width_label, (sidebar_x + 10, 10))
         self.screen.blit(self.height_label, (sidebar_x + 90, 10))
-        self.screen.blit(self.info_label, (sidebar_x + 10, 230))
-        self.screen.blit(self.info1_label, (sidebar_x + 10, 260))
-        self.screen.blit(self.info2_label, (sidebar_x + 10, 290))
-        self.screen.blit(self.info3_label, (sidebar_x + 10, 320))
-        self.screen.blit(self.info4_label, (sidebar_x + 10, 350))
-        self.screen.blit(self.info5_label, (sidebar_x + 10, 380))
+        self.screen.blit(self.info_label, (sidebar_x + 10, 270))
+        self.screen.blit(self.info1_label, (sidebar_x + 10, 300))
+        self.screen.blit(self.info2_label, (sidebar_x + 10, 330))
+        self.screen.blit(self.info3_label, (sidebar_x + 10, 360))
+        self.screen.blit(self.info4_label, (sidebar_x + 10, 390))
+        self.screen.blit(self.info5_label, (sidebar_x + 10, 420))
+        self.screen.blit(self.info6_label, (sidebar_x + 10, 450))
 
         # 绘制输入框
         self.width_input.draw(self.screen)
@@ -186,6 +217,7 @@ class MapEditor:
         self.apply_button.draw(self.screen)
         self.clear_button.draw(self.screen)
         self.export_button.draw(self.screen)
+        self.import_button.draw(self.screen)
 
         # 绘制橡皮擦按钮，根据模式显示不同颜色
         if self.eraser_mode:
@@ -244,17 +276,24 @@ class MapEditor:
             self.grid[cell[1]][cell[0]] = 2
 
     def end_line(self):
-        """结束当前线条绘制，分配编号"""
+        """结束当前线条绘制，分配编号（复用已删除线条的编号）"""
         if len(self.current_line) >= 2:
+            # 找到最小的未使用编号
+            used_ids = set(self.lines.keys())
+            new_line_id = 0
+            while new_line_id in used_ids:
+                new_line_id += 1
+            
             # 为新线条创建编号（从0开始）
             line_numbers = list(range(len(self.current_line)))
             # 存储线条数据，包含点坐标和编号
-            self.lines[self.next_line_id] = {
+            self.lines[new_line_id] = {
                 "points": self.current_line.copy(),
                 "numbers": line_numbers
             }
-            # 更新下一条线的编号
-            self.next_line_id += 1
+            # 更新next_line_id，但不影响编号复用逻辑
+            if new_line_id >= self.next_line_id:
+                self.next_line_id = new_line_id + 1
         else:
             # 如果线条只有一个点，清除它
             if self.current_line:
@@ -342,7 +381,7 @@ class MapEditor:
             self.show_temp_message(erase_msg, 500)
 
     def export_to_json(self):
-        """导出为JSON文件，按照指定格式"""
+        """导出为JSON文件，让用户选择保存路径和文件名"""
         # 准备导出数据 - 包含所有网格单元格
         export_data = []
 
@@ -366,43 +405,220 @@ class MapEditor:
                 export_data.append(cell_data)
 
         try:
-            with open("map_data.json", "w", encoding="utf-8") as f:
-                json.dump(export_data, f, indent=2, ensure_ascii=False)
+            # 创建一个临时的Tkinter根窗口并隐藏它
+            root = tk.Tk()
+            root.withdraw()  # 隐藏主窗口
+            
+            # 设置窗口为前台窗口
+            root.attributes('-topmost', True)
+            
+            # 打开文件保存对话框
+            file_path = filedialog.asksaveasfilename(
+                defaultextension=".json",
+                filetypes=[("JSON files", "*.json"), ("All files", "*")],
+                title=self.get_localized_text("保存地图数据", "Save Map Data"),
+                initialfile="map_data.json"
+            )
+            
+            # 关闭Tkinter窗口
+            root.destroy()
+            
+            # 如果用户选择了文件路径
+            if file_path:
+                with open(file_path, "w", encoding="utf-8") as f:
+                    json.dump(export_data, f, indent=2, ensure_ascii=False)
 
-            # 显示导出成功提示
-            success_msg = self.get_localized_text("地图数据已导出到 map_data.json",
-                                                  "Map data exported to map_data.json")
-            print(success_msg)
-            self.show_temp_message(success_msg, 2000)
+                # 显示导出成功提示
+                success_msg = self.get_localized_text(f"地图数据已导出到 {file_path}",
+                                                    f"Map data exported to {file_path}")
+                print(success_msg)
+                self.show_temp_message(success_msg, 2000)
+            else:
+                # 用户取消了保存操作
+                cancel_msg = self.get_localized_text("导出操作已取消", "Export operation cancelled")
+                print(cancel_msg)
 
         except Exception as e:
             error_msg = self.get_localized_text(f"导出失败: {e}", f"Export failed: {e}")
             print(error_msg)
             self.show_temp_message(error_msg, 3000)
+            
+    def import_from_json(self):
+        """从JSON文件导入地图数据"""
+        try:
+            # 使用pygame的文件对话框选择文件
+            import tkinter as tk
+            from tkinter import filedialog
+            
+            # 创建一个隐藏的Tk窗口
+            root = tk.Tk()
+            root.withdraw()  # 隐藏主窗口
+            
+            # 打开文件选择对话框
+            file_path = filedialog.askopenfilename(
+                title=self.get_localized_text("选择地图JSON文件", "Select Map JSON File"),
+                filetypes=[("JSON Files", "*.json"), ("All Files", "*.*")]
+            )
+            
+            # 如果用户取消选择，则返回
+            if not file_path:
+                return
+            
+            # 读取JSON文件
+            with open(file_path, "r", encoding="utf-8") as f:
+                import_data = json.load(f)
+            
+            # 分析导入数据，确定网格大小
+            max_x = 0
+            max_y = 0
+            for cell in import_data:
+                max_x = max(max_x, cell["x"])
+                max_y = max(max_y, cell["y"])
+            
+            # 调整网格大小
+            new_width = max_x + 1
+            new_height = max_y + 1
+            
+            # 重新设置网格
+            self.grid_width = new_width
+            self.grid_height = new_height
+            
+            # 重新计算窗口大小
+            self.window_width = self.grid_width * self.cell_size + self.sidebar_width
+            self.window_height = max(self.grid_height * self.cell_size, 450)
+            
+            # 重新创建窗口
+            self.screen = pygame.display.set_mode((self.window_width, self.window_height))
+            
+            # 重置数据
+            self.grid = [[0 for _ in range(self.grid_width)] for _ in range(self.grid_height)]
+            self.lines = {}
+            self.current_line = []
+            self.selected_start = None
+            self.next_line_id = 0
+            
+            # 重建UI元素
+            self.create_ui_elements()
+            
+            # 按线条ID分组单元格数据
+            line_cells = {}
+            for cell in import_data:
+                x, y = cell["x"], cell["y"]
+                line_id = cell["id"] - 1  # 转回0开始的索引
+                node_index = cell["nodeIndex"] - 1  # 转回0开始的索引
+                
+                if line_id >= 0:
+                    if line_id not in line_cells:
+                        line_cells[line_id] = []
+                    line_cells[line_id].append((x, y, node_index))
+            
+            # 重建线条数据
+            for line_id, cells in line_cells.items():
+                # 按nodeIndex排序，确保点的顺序正确
+                cells.sort(key=lambda c: c[2])
+                
+                # 提取点坐标和编号
+                points = [(x, y) for x, y, _ in cells]
+                numbers = [i for _, _, i in cells]
+                
+                # 存储线条数据
+                self.lines[line_id] = {
+                    "points": points,
+                    "numbers": numbers
+                }
+                
+                # 更新网格数据
+                for x, y, _ in cells:
+                    self.grid[y][x] = 2
+                
+                # 如果线条不为空，将第一个点设为起点
+                if points:
+                    start_x, start_y = points[0]
+                    self.grid[start_y][start_x] = 1
+                    self.selected_start = (start_x, start_y)
+                
+                # 更新下一个线条ID
+                self.next_line_id = max(self.next_line_id, line_id + 1)
+            
+            # 显示导入成功提示
+            success_msg = self.get_localized_text(f"成功导入地图数据，网格大小: {new_width}x{new_height}",
+                                                  f"Successfully imported map data, grid size: {new_width}x{new_height}")
+            print(success_msg)
+            self.show_temp_message(success_msg, 2000)
+            
+        except json.JSONDecodeError:
+            error_msg = self.get_localized_text("JSON文件格式错误", "Invalid JSON file format")
+            print(error_msg)
+            self.show_temp_message(error_msg, 3000)
+        except Exception as e:
+            error_msg = self.get_localized_text(f"导入失败: {e}", f"Import failed: {e}")
+            print(error_msg)
+            self.show_temp_message(error_msg, 3000)
 
     def resize_grid(self, width: int, height: int):
         """调整网格大小"""
+        # 验证输入
         if width <= 0 or height <= 0:
-            error_msg = self.get_localized_text("请输入有效的数字", "Please enter valid numbers")
+            error_msg = self.get_localized_text("网格大小必须为正数", "Grid size must be positive")
             self.show_temp_message(error_msg, 2000)
             return
 
+        # 更新网格大小
         self.grid_width = width
         self.grid_height = height
 
-        # 重新计算窗口大小
-        self.window_width = self.grid_width * self.cell_size + self.sidebar_width
-        self.window_height = max(self.grid_height * self.cell_size, 450)
-
-        # 重新创建窗口
-        self.screen = pygame.display.set_mode((self.window_width, self.window_height))
-
-        # 重置网格数据
+        # 重新创建网格数据
+        # 保留已有的线条信息
+        old_grid = self.grid
+        old_lines = self.lines
+        
+        # 创建新的网格
         self.grid = [[0 for _ in range(self.grid_width)] for _ in range(self.grid_height)]
-        self.lines = {}
+        
+        # 尝试将旧的线条信息复制到新的网格中（如果空间足够）
+        for line_id, line_data in old_lines.items():
+            points = line_data["points"]
+            numbers = line_data["numbers"]
+            
+            # 检查所有点是否都在新的网格范围内
+            all_points_valid = True
+            for x, y in points:
+                if x >= self.grid_width or y >= self.grid_height:
+                    all_points_valid = False
+                    break
+            
+            if all_points_valid:
+                # 如果所有点都有效，保留这条线
+                self.lines[line_id] = line_data
+                # 更新网格
+                for i, (x, y) in enumerate(points):
+                    # 起点标记为1，其他点标记为2
+                    self.grid[y][x] = 1 if i == 0 else 2
+        
+        # 重新计算窗口大小
+        new_width = self.grid_width * self.cell_size + self.sidebar_width
+        new_height = max(self.grid_height * self.cell_size, 450)
+        
+        # 确保窗口不小于最小尺寸
+        self.window_width = max(new_width, self.min_window_width)
+        self.window_height = max(new_height, self.min_window_height)
+
+        # 重新创建可调整大小的窗口
+        self.screen = pygame.display.set_mode((self.window_width, self.window_height), pygame.RESIZABLE)
+
+        # 重置当前线条和选择的起点
         self.current_line = []
         self.selected_start = None
-        self.next_line_id = 0  # 重置线条编号
+        
+        # 重新计算下一个可用的线条ID
+        if self.lines:
+            # 查找最小的未使用ID
+            used_ids = set(self.lines.keys())
+            self.next_line_id = 0
+            while self.next_line_id in used_ids:
+                self.next_line_id += 1
+        else:
+            self.next_line_id = 0
 
         # 重新创建UI元素
         self.create_ui_elements()
@@ -412,6 +628,28 @@ class MapEditor:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 return False
+            
+            # 处理窗口调整大小事件
+            elif event.type == pygame.VIDEORESIZE:
+                # 确保窗口不小于最小尺寸
+                new_width = max(event.w, self.min_window_width)
+                new_height = max(event.h, self.min_window_height)
+                
+                # 重新计算单元格大小以适应新窗口
+                available_width = new_width - self.sidebar_width
+                self.cell_size = min(available_width // self.grid_width, new_height // self.grid_height)
+                # 确保单元格大小至少为10
+                self.cell_size = max(self.cell_size, 10)
+                
+                # 更新窗口大小
+                self.window_width = new_width
+                self.window_height = new_height
+                
+                # 重新创建窗口
+                self.screen = pygame.display.set_mode((self.window_width, self.window_height), pygame.RESIZABLE)
+                
+                # 重新创建UI元素以适应新的窗口大小
+                self.create_ui_elements()
 
             # 处理输入框事件
             self.width_input.handle_event(event)
@@ -437,6 +675,9 @@ class MapEditor:
 
                     elif self.export_button.is_clicked(pos):
                         self.export_to_json()
+                        
+                    elif self.import_button.is_clicked(pos):
+                        self.import_from_json()
 
                     elif self.eraser_button.is_clicked(pos):
                         self.eraser_mode = not self.eraser_mode
@@ -468,9 +709,28 @@ class MapEditor:
 
             elif event.type == pygame.MOUSEMOTION:
                 if self.dragging:
-                    cell = self.get_cell_at_pos(event.pos)
-                    if cell and cell != self.current_line[-1]:
-                        self.add_point_to_line(cell)
+                    current_cell = self.get_cell_at_pos(event.pos)
+                    if current_cell:
+                        last_cell = self.current_line[-1]
+                        # 如果鼠标移动到了新单元格
+                        if current_cell != last_cell:
+                            # 计算当前单元格和上一个单元格之间的所有单元格
+                            last_x, last_y = last_cell
+                            curr_x, curr_y = current_cell
+                            
+                            # 处理水平或垂直移动的情况
+                            if last_x == curr_x:  # 垂直移动
+                                step = 1 if curr_y > last_y else -1
+                                for y in range(last_y + step, curr_y + step, step):
+                                    self.add_point_to_line((last_x, y))
+                            elif last_y == curr_y:  # 水平移动
+                                step = 1 if curr_x > last_x else -1
+                                for x in range(last_x + step, curr_x + step, step):
+                                    self.add_point_to_line((x, last_y))
+                            else:
+                                # 对于对角线移动，仍然只添加目标单元格
+                                # 这样可以避免意外添加不必要的单元格
+                                self.add_point_to_line(current_cell)
 
             elif event.type == pygame.MOUSEBUTTONUP:
                 if event.button == 1 and self.dragging:
