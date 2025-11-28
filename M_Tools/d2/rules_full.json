@@ -1,0 +1,192 @@
+{
+  "rules": [
+    /* ===============================
+     *     成品符文装备 Spirit
+     * =============================== */
+    {
+      "id": "spirit_monarch_highres",
+      "match": {"misc.runeword": "Spirit", "type": "Monarch"},
+      "conditions": {"defense_min": 140, "allres_min": 35},
+      "value": "高价值",
+      "reason": "高防 Monarch Spirit +35 全抗"
+    },
+    {
+      "id": "spirit_monarch_mid",
+      "match": {"misc.runeword": "Spirit", "type": "Monarch"},
+      "conditions": {"defense_min": 130},
+      "value": "中等价值",
+      "reason": "成品 Spirit 防御中档"
+    },
+    {
+      "id": "spirit_monarch_basic",
+      "match": {"misc.runeword": "Spirit", "type": "Monarch"},
+      "conditions": {"defense_min": 110},
+      "value": "低价值",
+      "reason": "成品 Spirit 基础价值"
+    },
+
+    /* ===============================
+     *     白板底材
+     * =============================== */
+    {
+      "id": "monarch_white_140",
+      "match": {"type": "Monarch"},
+      "conditions": {"sockets_min": 0, "defense_min": 140},
+      "value": "高价值底材",
+      "reason": "白板 Monarch 140+ 防御"
+    },
+    {
+      "id": "monarch_white_130",
+      "match": {"type": "Monarch"},
+      "conditions": {"defense_min": 130},
+      "value": "中等底材",
+      "reason": "Monarch 130+ 防御"
+    },
+
+    /* ===============================
+     *             Insight
+     * =============================== */
+    {
+      "id": "insight_eth_elite",
+      "match": {"misc.runeword": "Insight"},
+      "conditions": {"ethereal": true, "damage_max_min": 200},
+      "value": "高价值",
+      "reason": "无限 merc 高伤 Insight（eth + 高伤）"
+    },
+
+    /* ===============================
+     *             Infinity
+     * =============================== */
+    {
+      "id": "infinity_eth_elite",
+      "match": {"misc.runeword": "Infinity"},
+      "conditions": {"ethereal": true, "damage_max_min": 300},
+      "value": "高价值",
+      "reason": "无限高伤底材（eth + 高武器基伤）"
+    },
+
+    /* ===============================
+     *          Fortitude 防
+     * =============================== */
+    {
+      "id": "forti_elite_eth",
+      "match": {"misc.runeword": "Fort"},
+      "conditions": {"ethereal": true, "defense_min": 2800},
+      "value": "高价值",
+      "reason": "高防 eth Fortitude（2800+）"
+    },
+
+    /* ===============================
+     *                Grief
+     * =============================== */
+    {
+      "id": "grief_phase_380",
+      "match": {"misc.runeword": "Grief", "type": "Phase Blade"},
+      "conditions": {"damage_min_min": 380},
+      "value": "高价值",
+      "reason": "高卷 380+ Grief PB"
+    },
+
+    /* ===============================
+     *          项链 / Amulet
+     * =============================== */
+    {
+      "id": "amu_2skill_10fcr_high",
+      "match": {"type": "Amulet"},
+      "conditions": {"fcr_min": 10, "skills_plus_any_min": 2},
+      "value": "高价值",
+      "reason": "项链 2 技能 10FCR（双强项）"
+    },
+    {
+      "id": "amu_10fcr_good",
+      "match": {"type": "Amulet"},
+      "conditions": {"fcr_min": 10},
+      "value": "中等价值",
+      "reason": "10FCR 项链基础值"
+    },
+    {
+      "id": "amu_resist_life",
+      "match": {"type": "Amulet"},
+      "conditions": {"resist_any_min": 20, "life_min": 30},
+      "value": "中等价值",
+      "reason": "双抗 + 生命的实用项链"
+    },
+
+    /* ===============================
+     *           戒指 / Ring
+     * =============================== */
+    {
+      "id": "ring_10fcr_good",
+      "match": {"type": "Ring"},
+      "conditions": {"fcr_min": 10, "str_min": 15, "resist_any_min": 20},
+      "value": "高价值",
+      "reason": "10FCR + 力量 + 抗性 优秀戒指"
+    },
+    {
+      "id": "ring_10fcr_base",
+      "match": {"type": "Ring"},
+      "conditions": {"fcr_min": 10},
+      "value": "中等价值",
+      "reason": "10FCR 基础戒指"
+    },
+
+    /* ===============================
+     *           鞋子 / Boots
+     * =============================== */
+    {
+      "id": "boots_30frw_triple_res",
+      "match": {"type": "Boots"},
+      "conditions": {"frw_min": 30, "resist_count_min": 3, "resist_each_min": 25},
+      "value": "高价值",
+      "reason": "30FRW + 三抗 25+ 顶配鞋子"
+    },
+
+    /* ===============================
+     *         手套 / Gloves
+     * =============================== */
+    {
+      "id": "glove_2skill_20ias",
+      "match": {"type": "Gloves"},
+      "conditions": {"ias_min": 20, "skills_plus_any_min": 2},
+      "value": "高价值",
+      "reason": "2 技能 + 20 IAS 顶配手套"
+    },
+
+    /* ===============================
+     *          法杖底材 / Staff
+     * =============================== */
+    {
+      "id": "staff_3light",
+      "match": {"type": "Staff"},
+      "conditions": {"skill_exact": "3 to Lightning"},
+      "value": "高价值底材",
+      "reason": "3 Lightning 底材（电法核心）"
+    },
+    {
+      "id": "staff_3enchant",
+      "match": {"type": "Staff"},
+      "conditions": {"skill_exact": "3 to Enchant"},
+      "value": "中等价值底材",
+      "reason": "3 Enchant 底材"
+    },
+
+    /* ===============================
+     *       头盔底材 / Barbarian
+     * =============================== */
+    {
+      "id": "helm_3bo",
+      "match": {"type": "Helm"},
+      "conditions": {"skill_exact": "3 to Battle Orders"},
+      "value": "高价值底材",
+      "reason": "3BO 头（插符文或做 CtA）"
+    },
+    {
+      "id": "helm_3wc",
+      "match": {"type": "Helm"},
+      "conditions": {"skill_exact": "3 to War Cry"},
+      "value": "中等价值底材",
+      "reason": "3 WarCry 头"
+    }
+
+  ]
+}
