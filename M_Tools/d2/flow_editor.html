@@ -1,0 +1,788 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>一笔画地图编辑器 — 第一版（导出坐标 x,y）</title>
+<style>
+  :root{
+    --sidebar-w: 300px;
+    --cell-size: 56px;
+    --gap: 4px;
+    --panel: #fbfbfb;
+    --accent: #2b87ff;
+  }
+  html,body{ height:100%; margin:0; font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial; color:#111; background:#f3f6fb; }
+  .app{ display:flex; height:100vh; }
+  .sidebar{ width:var(--sidebar-w); background:var(--panel); padding:16px; border-right:1px solid #e6e9ef; box-sizing:border-box; display:flex; flex-direction:column; gap:12px; }
+  .title{ font-weight:700; font-size:18px; margin-bottom:4px;}
+  .row{ display:flex; gap:8px; align-items:center; flex-wrap:wrap;}
+  label{ font-size:13px; color:#333; }
+  input[type=number]{ width:72px; padding:6px; border-radius:6px; border:1px solid #ddd; }
+  button{ padding:8px 10px; border-radius:8px; border:1px solid #ddd; background:white; cursor:pointer; }
+  button.primary{ background:var(--accent); color:white; border:none; }
+  .small{ font-size:12px; color:#666; }
+  .palette{ display:flex; gap:6px; flex-wrap:wrap; }
+  .sw{ width:30px; height:30px; border-radius:6px; cursor:pointer; border:2px solid transparent; box-sizing:border-box; }
+  .sw.selected{ outline: 2px solid #333; transform:scale(1.03); }
+
+  .main{ flex:1; padding:18px; box-sizing:border-box; display:flex; gap:16px; }
+  .grid-wrap{ padding:12px; background:linear-gradient(180deg,#fff,#fafcff); border-radius:10px; box-shadow:0 4px 18px rgba(17,24,39,0.05); display:flex; flex-direction:column; gap:12px; }
+  .grid-container{
+    width: calc(var(--cell-size) * var(--cols) + var(--gap) * (var(--cols) - 1));
+    height: calc(var(--cell-size) * var(--rows) + var(--gap) * (var(--rows) - 1));
+    position:relative;
+    background:linear-gradient(180deg,#fff,#fff);
+    display:block;
+    overflow:hidden;
+  }
+  .grid{
+    display:grid;
+    grid-template-columns: repeat(var(--cols), var(--cell-size));
+    grid-template-rows: repeat(var(--rows), var(--cell-size));
+    gap: var(--gap);
+    width:100%;
+    height:100%;
+    position:relative;
+    box-sizing:border-box;
+  }
+  .cell { box-sizing:border-box; width:var(--cell-size); height:var(--cell-size); border-radius:8px; background:#fff; display:flex; align-items:center; justify-content:center; position:relative; user-select:none; border: 1px solid rgba(16,24,40,0.04); }
+  .cell.obstacle{ background: repeating-linear-gradient(45deg,#b0b0b0 0 6px,#9a9a9a 6px 12px); }
+  .dot{ width:64%; height:64%; border-radius:50%; box-shadow:0 4px 10px rgba(16,24,40,0.08); pointer-events:none; }
+
+  .svg-overlay{ position:absolute; left:0; top:0; width:100%; height:100%; pointer-events:none; z-index:8; }
+  .path-layer{ position:absolute; left:0; top:0; width:100%; height:100%; pointer-events:none; z-index:9; }
+
+  .controls-block{ background:white; padding:10px; border-radius:8px; box-shadow:0 2px 8px rgba(12,20,60,0.04); }
+  .hint{ font-size:13px; color:#556; }
+  .file-row input[type=file]{ display:block; }
+  .footer { margin-top:auto; font-size:12px; color:#666; }
+</style>
+</head>
+<body>
+  <div class="app">
+    <div class="sidebar">
+      <div>
+        <div class="title">一笔画地图编辑器</div>
+        <div class="small">第一版布局 — 导出使用 x,y 坐标</div>
+      </div>
+
+      <div class="controls-block">
+        <div class="row">
+          <label>行</label><input id="rowsInput" type="number" min="3" value="7">
+          <label>列</label><input id="colsInput" type="number" min="3" value="7">
+          <button id="resizeBtn">调整</button>
+        </div>
+
+        <div style="margin-top:10px;" class="row">
+          <button id="editModeBtn" class="primary">编辑模式</button>
+          <button id="playModeBtn">测试模式</button>
+        </div>
+
+        <div style="margin-top:8px;">
+          <div class="small">当前：<span id="modeLabel">编辑</span></div>
+        </div>
+      </div>
+
+      <div class="controls-block">
+        <div class="small" style="margin-bottom:6px;">颜色选择（点）</div>
+        <div id="palette" class="palette"></div>
+
+        <div style="margin-top:8px;" class="row">
+          <button id="actionAddDot">添加点</button>
+          <button id="actionRemoveDot">删除点</button>
+          <button id="actionToggleObstacle">切换障碍</button>
+          <button id="actionEraser">橡皮</button>
+        </div>
+      </div>
+
+      <div class="controls-block">
+        <div><button id="exportBtn">导出 JSON</button> <button id="downloadBtn">下载文件</button></div>
+        <div style="margin-top:8px;" class="file-row">
+          <label>导入地图</label>
+          <input id="fileInput" type="file" accept="application/json">
+        </div>
+        <div style="margin-top:8px;">
+          <button id="clearBtn">清空地图</button>
+        </div>
+      </div>
+
+      <div class="controls-block">
+        <div style="margin-bottom:6px;"><strong>快速示例</strong></div>
+        <div class="row">
+          <button id="sample1">示例 1</button>
+          <button id="sample2">示例 2</button>
+        </div>
+        <div class="row" style="margin-top:8px;">
+          <button id="randomBtn">随机地图</button>
+        </div>
+      </div>
+
+      <div class="footer">
+        提示：测试模式支持 <strong>按下→拖动→松开</strong> 完成连线。线不能穿障碍或重叠。
+      </div>
+    </div>
+
+    <div class="main">
+      <div class="grid-wrap">
+        <div id="gridContainer" class="grid-container" style="--rows:7; --cols:7;">
+          <div id="grid" class="grid" style="--rows:7; --cols:7;"></div>
+          <svg id="svg" class="svg-overlay"></svg>
+          <canvas id="pathCanvas" class="path-layer"></canvas>
+        </div>
+        <div id="status" class="hint">状态：编辑模式 — 选择工具并在网格上点击</div>
+      </div>
+
+      <div style="width:280px;">
+        <div class="controls-block">
+          <div><strong>统计 / 操作</strong></div>
+          <div id="stats" class="small" style="margin-top:8px;">点数：0 | 障碍：0 | 已连线：0</div>
+          <div style="margin-top:8px;">
+            <button id="undoBtn">撤销当前绘制</button>
+            <button id="checkBtn">基本可达性检查</button>
+          </div>
+        </div>
+
+        <div class="controls-block" style="margin-top:12px;">
+          <div><strong>说明</strong></div>
+          <div class="small" style="margin-top:6px;">
+            - 编辑：放点 / 障碍 / 橡皮。<br>
+            - 测试：按住起点拖动至同色终点完成连线。<br>
+            - 导出 JSON 包含 map + solution（坐标均为 x,y）。
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+const DEFAULT_COLORS = ["#ff4d4f","#ffa940","#ffd666","#73d13d","#36cfc9","#2f54eb","#9254de","#ff85c0"];
+let mapState = { rows: 7, cols: 7, dots: [], obstacles: [] };
+let solution = {}; // color -> path array with {r,c}
+let mode = "edit";
+let currentAction = "addDot";
+let selectedColor = DEFAULT_COLORS[0];
+
+let isDrawing = false;
+let drawingColor = null;
+let drawingPath = [];
+let occupied = {};
+let undoStack = [];
+
+const rowsInput = document.getElementById("rowsInput");
+const colsInput = document.getElementById("colsInput");
+const gridEl = document.getElementById("grid");
+const svgEl = document.getElementById("svg");
+const canvas = document.getElementById("pathCanvas");
+const statusEl = document.getElementById("status");
+const statsEl = document.getElementById("stats");
+
+function init(){
+  document.getElementById("resizeBtn").onclick = applyResize;
+  document.getElementById("editModeBtn").onclick = ()=>switchMode("edit");
+  document.getElementById("playModeBtn").onclick = ()=>switchMode("play");
+  document.getElementById("actionAddDot").onclick = ()=>setAction("addDot");
+  document.getElementById("actionRemoveDot").onclick = ()=>setAction("removeDot");
+  document.getElementById("actionToggleObstacle").onclick = ()=>setAction("toggleObstacle");
+  document.getElementById("actionEraser").onclick = ()=>setAction("eraser");
+  document.getElementById("exportBtn").onclick = ()=>{ const j = exportMap(); promptJSON(j); };
+  document.getElementById("downloadBtn").onclick = ()=>{ downloadFile("map.json", JSON.stringify(exportMap(),null,2)); };
+  document.getElementById("fileInput").onchange = handleFileImport;
+  document.getElementById("clearBtn").onclick = ()=>{ if(confirm("清空当前地图？")){ clearMap(); } };
+  document.getElementById("undoBtn").onclick = undoDrawing;
+  document.getElementById("checkBtn").onclick = basicCheck;
+  document.getElementById("sample1").onclick = ()=>loadExample(1);
+  document.getElementById("sample2").onclick = ()=>loadExample(2);
+  document.getElementById("randomBtn").onclick = generateRandomMap;
+
+  renderPalette();
+  buildGrid(mapState.rows, mapState.cols);
+  updateStats();
+
+  window.addEventListener('mouseup', ()=>{ if(isDrawing) finishDrawing(false); });
+  window.addEventListener('mousemove', onGlobalMouseMove);
+  resizeCanvas();
+  window.addEventListener('resize', resizeCanvas);
+}
+
+function renderPalette(){
+  const p = document.getElementById("palette");
+  p.innerHTML = "";
+  DEFAULT_COLORS.forEach(c=>{
+    const el = document.createElement("div");
+    el.className = "sw" + (c===selectedColor ? " selected":"");
+    el.style.background = c;
+    el.onclick = ()=>{ selectedColor = c; renderPalette(); setAction("addDot"); };
+    p.appendChild(el);
+  });
+}
+
+function setAction(a){
+  currentAction = a;
+  const actionText = a === "addDot" ? "添加点" : 
+                     a === "removeDot" ? "删除点和障碍物" : 
+                     a === "toggleObstacle" ? "切换障碍" : 
+                     a === "eraser" ? "橡皮（删除连线）" : "未知操作";
+  statusEl.textContent = `状态：${mode==="edit"?"编辑":"测试"} — 操作：${actionText}`;
+}
+
+function switchMode(m){
+  if(m===mode) return;
+  if(m === "play"){
+    const counts = {};
+    mapState.dots.forEach(d=> counts[d.color] = (counts[d.color]||0)+1);
+    for(const col in counts){
+      if(counts[col] !== 2){
+        alert(`颜色 ${col} 的点数不是两点（当前 ${counts[col]} 个）。请在进入测试模式前把每个颜色设置为恰好 2 个点。`);
+        return;
+      }
+    }
+    occupied = {};
+    for(const col in solution){
+      for(const p of solution[col]) occupied[`${p.r}_${p.c}`] = col;
+    }
+    statusEl.textContent = "状态：测试模式 — 在某个点按下并拖动，连到同色终点松开完成。";
+  } else {
+    statusEl.textContent = "状态：编辑模式 — 选择操作并点击网格。";
+    if(isDrawing) finishDrawing(false);
+  }
+  mode = m;
+  document.getElementById("modeLabel").textContent = mode === "edit" ? "编辑" : "测试";
+  setAction("addDot");
+  renderGrid();
+}
+
+function buildGrid(rows, cols, clearState = true){
+  mapState.rows = rows; mapState.cols = cols;
+  document.getElementById("gridContainer").style.setProperty('--rows', rows);
+  document.getElementById("gridContainer").style.setProperty('--cols', cols);
+  document.getElementById("grid").style.setProperty('--rows', rows);
+  document.getElementById("grid").style.setProperty('--cols', cols);
+  document.getElementById("gridContainer").style.width = `calc(var(--cell-size) * ${cols} + var(--gap) * (${cols} - 1))`;
+  document.getElementById("gridContainer").style.height = `calc(var(--cell-size) * ${rows} + var(--gap) * (${rows} - 1))`;
+
+  gridEl.innerHTML = "";
+  for(let r=0;r<rows;r++){
+    for(let c=0;c<cols;c++){
+      const cell = document.createElement("div");
+      cell.className = "cell";
+      cell.dataset.r = r; cell.dataset.c = c;
+      cell.style.width = `var(--cell-size)`; cell.style.height = `var(--cell-size)`;
+      cell.onmousedown = (e)=>cellMouseDown(e, r, c);
+      cell.onmouseenter = (e)=>cellMouseEnter(e, r, c);
+      cell.onclick = (e)=>cellClick(e, r, c);
+      gridEl.appendChild(cell);
+    }
+  }
+  
+  if(clearState){
+    mapState.dots = []; mapState.obstacles = []; solution = {}; occupied = {};
+  }
+  
+  renderGrid();
+  resizeCanvas(); // Ensure SVG and Canvas sizes are correct
+}
+
+function renderGrid(){
+  const cells = gridEl.children;
+  const dotMap = {};
+  mapState.dots.forEach(d => { dotMap[`${d.r}_${d.c}`] = d.color; });
+  const obsMap = {};
+  mapState.obstacles.forEach(o => { obsMap[`${o.r}_${o.c}`] = true; });
+
+  for(let i=0;i<cells.length;i++){
+    const el = cells[i];
+    const r = +el.dataset.r, c = +el.dataset.c;
+    el.classList.toggle("obstacle", !!obsMap[`${r}_${c}`]);
+    el.innerHTML = "";
+    if(dotMap[`${r}_${c}`]){
+      const d = document.createElement("div");
+      d.className = "dot";
+      d.style.background = dotMap[`${r}_${c}`];
+      el.appendChild(d);
+    }
+  }
+  renderSolutions();
+  updateStats();
+}
+
+function cellClick(e, r, c){
+  if(mode === "edit"){
+    if(currentAction === "addDot"){
+      if(isObstacle(r,c)){
+        alert("该格为障碍，先移除障碍才能放点");
+        return;
+      }
+      const color = selectedColor;
+      const cnt = mapState.dots.filter(d=>d.color===color).length;
+      if(cnt >= 2){
+        alert("该颜色的点已经有 2 个（限制成对）。");
+        return;
+      }
+      const idx = mapState.dots.findIndex(d=>d.r===r && d.c===c);
+      if(idx !== -1){
+        mapState.dots.splice(idx,1);
+      } else {
+        mapState.dots.push({r,c,color});
+      }
+      renderGrid();
+    } else if(currentAction === "removeDot"){
+      // 删除点
+      const idx = mapState.dots.findIndex(d=>d.r===r && d.c===c);
+      if(idx !== -1) mapState.dots.splice(idx,1);
+      // 删除障碍物
+      const oi = mapState.obstacles.findIndex(o=>o.r===r && o.c===c);
+      if(oi !== -1) mapState.obstacles.splice(oi,1);
+      renderGrid();
+    } else if(currentAction === "toggleObstacle"){
+      const di = mapState.dots.findIndex(d=>d.r===r && d.c===c);
+      if(di !== -1) mapState.dots.splice(di,1);
+      const oi = mapState.obstacles.findIndex(o=>o.r===r && o.c===c);
+      if(oi !== -1) mapState.obstacles.splice(oi,1);
+      else mapState.obstacles.push({r,c});
+      renderGrid();
+    } else if(currentAction === "eraser"){
+      // 橡皮功能：删除经过该点的所有连线
+      let removed = false;
+      for(const color in solution){
+        const path = solution[color];
+        // 检查该点是否在当前路径中
+        if(path.some(p=>p.r===r && p.c===c)){
+          // 删除该颜色的连线
+          delete solution[color];
+          // 更新occupied对象
+          delete occupied[`${r}_${c}`];
+          removed = true;
+        }
+      }
+      if(removed){
+        // 重新构建occupied对象
+        occupied = {};
+        for(const col in solution){
+          for(const p of solution[col]) occupied[`${p.r}_${p.c}`] = col;
+        }
+        statusEl.textContent = "已删除经过该点的连线";
+      } else {
+        statusEl.textContent = "该点没有连线";
+      }
+      renderGrid();
+    }
+  }
+}
+
+function cellMouseDown(e, r, c){
+  if(mode !== "play") return;
+  const dot = mapState.dots.find(d=>d.r===r && d.c===c);
+  if(!dot) return;
+  const key = `${r}_${c}`;
+  if(occupied[key]) {
+    statusEl.textContent = "该点已被占用（已有路径）";
+    return;
+  }
+  isDrawing = true; drawingColor = dot.color; drawingPath = [{r,c}]; undoStack = [];
+  statusEl.textContent = `绘制颜色 ${drawingColor}... 拖动至同色终点松开完成`;
+  renderTempPath();
+}
+
+function cellMouseEnter(e, r, c){
+  if(mode !== "play" || !isDrawing) return;
+  const last = drawingPath[drawingPath.length-1];
+  if(Math.abs(last.r - r) + Math.abs(last.c - c) !== 1) return;
+  if(isObstacle(r,c)) return;
+  const k = `${r}_${c}`;
+  if(occupied[k] && occupied[k] !== drawingColor) return;
+  if(drawingPath.some(p=>p.r===r && p.c===c)) return;
+  const dot = mapState.dots.find(d=>d.r===r && d.c===c);
+  if(dot && dot.color !== drawingColor) return;
+  drawingPath.push({r,c});
+  undoStack.push({r,c});
+  renderTempPath();
+}
+
+function onGlobalMouseMove(e){
+  if(mode !== "play" || !isDrawing) return;
+  const rect = gridEl.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  if(x<0 || y<0 || x>rect.width || y>rect.height) return;
+  const colWidth = rect.width / mapState.cols;
+  const rowHeight = rect.height / mapState.rows;
+  const c = Math.floor(x / colWidth);
+  const r = Math.floor(y / rowHeight);
+  const last = drawingPath[drawingPath.length-1];
+  if(r===last.r && c===last.c) return;
+  cellMouseEnter(null, r, c);
+}
+
+function finishDrawing(commit){
+  if(!isDrawing) return;
+  isDrawing = false;
+  const end = drawingPath[drawingPath.length-1];
+  const start = drawingPath[0];
+  const startDot = mapState.dots.find(d=>d.r===start.r && d.c===start.c);
+  const endDot = mapState.dots.find(d=>d.r===end.r && d.c===end.c);
+  if(endDot && endDot.color === drawingColor && (end.r !== start.r || end.c !== start.c)){
+    solution[drawingColor] = drawingPath.map(p=>({r:p.r,c:p.c}));
+    drawingPath.forEach(p=> occupied[`${p.r}_${p.c}`] = drawingColor);
+    statusEl.textContent = `已完成颜色 ${drawingColor} 的连线`;
+  } else {
+    statusEl.textContent = `未完成连线，已取消`;
+  }
+  drawingColor = null; drawingPath = []; undoStack = [];
+  renderGrid();
+}
+
+function undoDrawing(){
+  if(!isDrawing || drawingPath.length<=1) return;
+  drawingPath.pop();
+  renderTempPath();
+  statusEl.textContent = "已撤销一步";
+}
+
+function renderSolutions(){
+  while(svgEl.firstChild) svgEl.removeChild(svgEl.firstChild);
+  const rect = gridEl.getBoundingClientRect();
+  const cellW = rect.width / mapState.cols;
+  const cellH = rect.height / mapState.rows;
+
+  const drawPath = (path, color, strokeWidth=10) => {
+    if(!path || path.length<2) return;
+    const points = path.map(p => {
+      const cx = p.c * cellW + cellW/2;
+      const cy = p.r * cellH + cellH/2;
+      return {x:cx, y:cy};
+    });
+    let d = `M ${points[0].x} ${points[0].y}`;
+    for(let i=1;i<points.length;i++){
+      d += ` L ${points[i].x} ${points[i].y}`;
+    }
+    const p = document.createElementNS("http://www.w3.org/2000/svg","path");
+    p.setAttribute("d", d);
+    p.setAttribute("stroke", color);
+    p.setAttribute("stroke-width", strokeWidth);
+    p.setAttribute("stroke-linecap", "round");
+    p.setAttribute("stroke-linejoin", "round");
+    p.setAttribute("fill", "none");
+    svgEl.appendChild(p);
+  };
+
+  for(const col in solution){
+    drawPath(solution[col], col, Math.max(cellW, cellH)/3.5);
+  }
+
+  if(isDrawing && drawingPath.length>0){
+    drawPath(drawingPath, drawingColor, Math.max(cellW, cellH)/3.5);
+  }
+  for(const d of mapState.dots){
+    const cx = d.c * cellW + cellW/2;
+    const cy = d.r * cellH + cellH/2;
+    const circ = document.createElementNS("http://www.w3.org/2000/svg","circle");
+    circ.setAttribute("cx", cx);
+    circ.setAttribute("cy", cy);
+    circ.setAttribute("r", Math.min(cellW,cellH)*0.14);
+    circ.setAttribute("fill", d.color);
+    circ.setAttribute("stroke", "#fff");
+    circ.setAttribute("stroke-width", 2);
+    svgEl.appendChild(circ);
+  }
+}
+
+function renderTempPath(){
+  renderGrid();
+  renderSolutions();
+}
+
+function isObstacle(r,c){ return mapState.obstacles.some(o=>o.r===r && o.c===c); }
+
+function updateStats(){
+  statsEl.textContent = `点数：${mapState.dots.length} | 障碍：${mapState.obstacles.length} | 已连线：${Object.keys(solution).length}`;
+}
+
+/* ========== 这里是 关键修改：导出使用 x,y 坐标 ========== */
+/* 导出的结构：
+   {
+     map: { rows, cols, dots: [{x,y,color},...], obstacles: [{x,y}, ...] },
+     solution: { "<color>": [{x,y}, ...], ... }
+   }
+*/
+function exportMap(){
+  // map part
+  const mapOut = {
+    rows: mapState.rows,
+    cols: mapState.cols,
+    dots: mapState.dots.map(d => ({ x: d.c, y: d.r, color: d.color })),
+    obstacles: mapState.obstacles.map(o => ({ x: o.c, y: o.r }))
+  };
+  // 只导出地图信息，不包含solution
+  return { map: mapOut };
+}
+
+function promptJSON(obj){
+  const text = JSON.stringify(obj, null, 2);
+  const w = window.open("", "_blank");
+  w.document.body.style.whiteSpace = "pre-wrap";
+  w.document.title = "地图 JSON (x,y 导出)";
+  w.document.body.textContent = text;
+}
+
+function downloadFile(filename, text){
+  const blob = new Blob([text], {type:"application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a"); a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 2000);
+}
+
+/* ========== 导入：兼容 x,y (首选) 或 r,c (备用) ========== */
+function handleFileImport(ev){
+  const f = ev.target.files[0];
+  if(!f) return;
+  const reader = new FileReader();
+  reader.onload = e=>{
+    try{
+      const j = JSON.parse(e.target.result);
+      // two possible shapes:
+      // 1) { map: {rows, cols, dots:[{x,y,color}], obstacles:[{x,y}]}, solution: {color: [{x,y}] } }
+      // 2) legacy: { rows, cols, dots:[{r,c,color}], obstacles:[{r,c}], solution: {color: [{r,c}] } }
+      if(j.map && (j.map.dots || j.map.obstacles)){
+        // prefer map format with x,y
+        mapState.rows = j.map.rows || mapState.rows;
+        mapState.cols = j.map.cols || mapState.cols;
+        mapState.dots = [];
+        mapState.obstacles = [];
+        // dots
+        (j.map.dots || []).forEach(pt=>{
+          if(('x' in pt) && ('y' in pt)){
+            mapState.dots.push({ r: pt.y, c: pt.x, color: pt.color });
+          } else if(('r' in pt) && ('c' in pt)) {
+            mapState.dots.push({ r: pt.r, c: pt.c, color: pt.color });
+          }
+        });
+        // obstacles
+        (j.map.obstacles || []).forEach(o=>{
+          if(('x' in o) && ('y' in o)){
+            mapState.obstacles.push({ r: o.y, c: o.x });
+          } else if(('r' in o) && ('c' in o)){
+            mapState.obstacles.push({ r: o.r, c: o.c });
+          }
+        });
+        // solution
+        solution = {};
+        if(j.solution){
+          for(const col in j.solution){
+            solution[col] = j.solution[col].map(p=>{
+              if('x' in p && 'y' in p) return { r: p.y, c: p.x };
+              if('r' in p && 'c' in p) return { r: p.r, c: p.c };
+              return null;
+            }).filter(Boolean);
+          }
+        }
+        rebuildGridFromState();
+        statusEl.textContent = "已导入地图（x,y 格式或兼容 r,c）";
+      } else if(j.rows && j.cols){
+        // legacy simple format
+        mapState.rows = j.rows; mapState.cols = j.cols;
+        mapState.dots = (j.dots||[]).map(pt => ('x' in pt && 'y' in pt) ? {r:pt.y,c:pt.x,color:pt.color} : {r:pt.r,c:pt.c,color:pt.color});
+        mapState.obstacles = (j.obstacles||[]).map(o => ('x' in o && 'y' in o) ? {r:o.y,c:o.x} : {r:o.r,c:o.c});
+        solution = {};
+        if(j.solution){
+          for(const col in j.solution){
+            solution[col] = j.solution[col].map(p => ('x' in p && 'y' in p) ? {r:p.y,c:p.x} : {r:p.r,c:p.c});
+          }
+        }
+        rebuildGridFromState();
+        statusEl.textContent = "已导入旧格式地图（自动兼容）";
+      } else {
+        alert("未识别的地图格式");
+      }
+    }catch(err){
+      alert("导入失败：" + err.message);
+    }
+  };
+  reader.readAsText(f);
+  ev.target.value = "";
+}
+
+function rebuildGridFromState(){
+  rowsInput.value = mapState.rows; colsInput.value = mapState.cols;
+  buildGrid(mapState.rows, mapState.cols, false); // Don't clear state when rebuilding from imported data
+  occupied = {};
+  for(const col in solution){
+    for(const p of solution[col]) occupied[`${p.r}_${p.c}`] = col;
+  }
+  renderGrid();
+}
+
+function applyResize(){
+  const r = parseInt(rowsInput.value,10);
+  const c = parseInt(colsInput.value,10);
+  if(isNaN(r)||isNaN(c)||r<3||c<3){ alert("请输入有效的行列（>=3）"); return; }
+  if(!confirm("调整尺寸会清空当前地图，确认继续？")) return;
+  buildGrid(r,c);
+  mapState.rows = r; mapState.cols = c;
+}
+
+function clearMap(){
+  mapState.dots = []; mapState.obstacles = []; solution = {}; occupied = {}; renderGrid(); updateStats();
+}
+
+function basicCheck(){
+  const groups = {};
+  mapState.dots.forEach(d=> { groups[d.color] = groups[d.color] || []; groups[d.color].push(d); });
+  for(const col in groups){
+    const pts = groups[col];
+    if(pts.length !== 2){ alert(`颜色${col}点数不为2`); return; }
+    const ok = bfsReachable(pts[0], pts[1]);
+    if(!ok){ alert(`颜色 ${col} 的两点之间无可通路（避开障碍）`); return; }
+  }
+  alert("基础可达性检查通过（每对点之间存在至少一条避障路径）。");
+}
+
+function bfsReachable(a,b){
+  const R = mapState.rows, C = mapState.cols;
+  const q = []; const vis = Array.from({length:R}, ()=>Array(C).fill(false));
+  q.push(a); vis[a.r][a.c]=true;
+  const dirs = [[1,0],[-1,0],[0,1],[0,-1]];
+  while(q.length){
+    const cur = q.shift();
+    if(cur.r===b.r && cur.c===b.c) return true;
+    for(const d of dirs){
+      const nr = cur.r + d[0], nc = cur.c + d[1];
+      if(nr<0||nc<0||nr>=R||nc>=C) continue;
+      if(vis[nr][nc]) continue;
+      if(isObstacle(nr,nc)) continue;
+      vis[nr][nc]=true; q.push({r:nr,c:nc});
+    }
+  }
+  return false;
+}
+
+function loadExample(n){
+  if(n===1){
+    const rows = 7, cols = 7;
+    buildGrid(rows, cols);
+    mapState.dots = [
+      {r:0,c:0,color:DEFAULT_COLORS[0]},
+      {r:6,c:6,color:DEFAULT_COLORS[0]},
+      {r:0,c:6,color:DEFAULT_COLORS[1]},
+      {r:6,c:0,color:DEFAULT_COLORS[1]},
+    ];
+    mapState.obstacles = [];
+    solution = {};
+    renderGrid();
+  } else {
+    const rows = 7, cols = 7;
+    buildGrid(rows, cols);
+    mapState.dots = [
+      {r:1,c:1,color:DEFAULT_COLORS[0]},{r:5,c:5,color:DEFAULT_COLORS[0]},
+      {r:1,c:5,color:DEFAULT_COLORS[1]},{r:5,c:1,color:DEFAULT_COLORS[1]},
+    ];
+    mapState.obstacles = [{r:3,c:2},{r:3,c:3},{r:3,c:4}];
+    solution = {};
+    renderGrid();
+  }
+}
+
+function generateRandomMap(){
+  // 获取当前的行列数
+  const rows = mapState.rows;
+  const cols = mapState.cols;
+  
+  // 清空当前地图
+  mapState.dots = [];
+  mapState.obstacles = [];
+  solution = {};
+  occupied = {};
+  
+  // 随机生成障碍，障碍数量为总格子数的15%-25%
+  const totalCells = rows * cols;
+  const obstacleCount = Math.floor(totalCells * (0.15 + Math.random() * 0.1));
+  
+  // 生成障碍
+  for(let i = 0; i < obstacleCount; i++){
+    let r, c;
+    do {
+      r = Math.floor(Math.random() * rows);
+      c = Math.floor(Math.random() * cols);
+    } while(isObstacle(r, c));
+    
+    mapState.obstacles.push({r, c});
+  }
+  
+  // 随机选择使用的颜色数量（2-4种）
+  const colorCount = 2 + Math.floor(Math.random() * 3);
+  const usedColors = DEFAULT_COLORS.slice(0, colorCount);
+  
+  // 为每种颜色生成两个点
+  for(const color of usedColors){
+    let points = [];
+    let attempts = 0;
+    const maxAttempts = 100;
+    
+    // 尝试生成两个可连通的点
+    while(points.length < 2 && attempts < maxAttempts){
+      attempts++;
+      let r, c;
+      
+      // 生成第一个点
+      if(points.length === 0){
+        do {
+          r = Math.floor(Math.random() * rows);
+          c = Math.floor(Math.random() * cols);
+        } while(isObstacle(r, c) || mapState.dots.some(d => d.r === r && d.c === c));
+        
+        points.push({r, c});
+      } else {
+        // 生成第二个点，确保与第一个点不同且可连通
+        let r2, c2;
+        do {
+          r2 = Math.floor(Math.random() * rows);
+          c2 = Math.floor(Math.random() * cols);
+        } while(isObstacle(r2, c2) || mapState.dots.some(d => d.r === r2 && d.c === c2) || (points[0].r === r2 && points[0].c === c2));
+        
+        // 检查两点是否可连通
+        if(bfsReachable(points[0], {r: r2, c: c2})){
+          points.push({r: r2, c: c2});
+        } else {
+          // 如果不可连通，重新开始生成这对颜色的点
+          points = [];
+        }
+      }
+    }
+    
+    // 如果成功生成了两个点，添加到地图中
+    if(points.length === 2){
+      mapState.dots.push({r: points[0].r, c: points[0].c, color: color});
+      mapState.dots.push({r: points[1].r, c: points[1].c, color: color});
+    }
+  }
+  
+  // 如果没有生成任何点，重新生成地图
+  if(mapState.dots.length === 0){
+    generateRandomMap();
+    return;
+  }
+  
+  // 渲染地图
+  renderGrid();
+  updateStats();
+  
+  // 提示用户
+  statusEl.textContent = `已生成随机地图，使用了 ${usedColors.length} 种颜色，${obstacleCount} 个障碍`;
+}
+
+function resizeCanvas(){
+  const rect = document.getElementById("gridContainer").getBoundingClientRect();
+  svgEl.setAttribute('width', rect.width);
+  svgEl.setAttribute('height', rect.height);
+  svgEl.style.width = rect.width + 'px'; svgEl.style.height = rect.height + 'px';
+  canvas.width = rect.width; canvas.height = rect.height;
+  renderSolutions();
+}
+
+init();
+
+</script>
+</body>
+</html>
+
