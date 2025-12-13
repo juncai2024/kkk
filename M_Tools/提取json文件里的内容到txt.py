@@ -1,26 +1,28 @@
 import os
 import json
 
-# 切换到指定目录
-os.chdir('/Users/larry/Documents/study/test')
+# 目标目录
+target_dir = r'E:\直播录屏\金瓶梅字幕'
+os.chdir(target_dir)
 
-# JSON 文件路径
-patch1 = r'/Users/larry/Documents/study/test/字幕.json'
+# 遍历目录下所有 json 文件
+for filename in os.listdir(target_dir):
+    if filename.endswith('.json'):
+        json_path = os.path.join(target_dir, filename)
+        try:
+            with open(json_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                text_data = []
+                for item in data.get('body', []):
+                    text = item.get('content', '')
+                    if text:
+                        text_data.append(text)
 
-# 打开 JSON 文件并读取内容
-with open(patch1, 'r') as f:
-    data = json.load(f)
-    text_data = []
+            # 生成对应的 txt 文件（比如 15.json -> 15_subtitle.txt）
+            txt_filename = f"{os.path.splitext(filename)[0]}_subtitle.txt"
+            with open(txt_filename, 'w', encoding='utf-8') as txt_file:
+                txt_file.write('\n'.join(text_data))  # 更高效的写入方式
+            print(f"成功处理：{filename} -> {txt_filename}")
 
-    # 遍历每个字幕内容，提取并整理成列表
-    for item in data.get('body', []):
-        text = item.get('content')
-        text_data.append(text)
-
-# 将提取的内容写入到 txt 文件中
-with open("subtitle.txt", "w") as txt_file:
-    for line in text_data:
-        txt_file.write(line + "\n")  # 每个内容占据一行，加上换行符
-
-# 关闭文件
-txt_file.close()
+        except Exception as e:
+            print(f"处理 {filename} 失败：{str(e)}")
