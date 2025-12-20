@@ -1,0 +1,103 @@
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f0f0f0;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+.container {
+    text-align: center;
+    background-color: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+h1 {
+    color: #333;
+    margin-bottom: 20px;
+}
+
+.controls {
+    margin-bottom: 20px;
+}
+
+.controls button {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    margin: 0 5px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s;
+}
+
+.grid-size-control,
+.grid-dimensions-control {
+    display: inline-block;
+    margin: 0 10px;
+    vertical-align: middle;
+}
+
+.grid-size-control label,
+.grid-dimensions-control label {
+    margin-right: 5px;
+    font-size: 16px;
+}
+
+.grid-size-control input,
+.grid-dimensions-control input {
+    width: 60px;
+    padding: 8px;
+    margin-right: 5px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    font-size: 16px;
+}
+
+#gridInfo {
+    margin-left: 5px;
+    font-size: 14px;
+    color: #666;
+}
+
+.controls button:hover {
+    background-color: #45a049;
+}
+
+.controls button.active {
+    background-color: #2196F3;
+}
+
+.game-container {
+    position: relative;
+    margin: 0 auto;
+    width: 600px;
+    height: 600px;
+    border: 2px solid #333;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+#gameCanvas {
+    display: block;
+    background-color: #fafafa;
+    cursor: crosshair;
+}
+
+.info {
+    margin-top: 20px;
+    font-size: 14px;
+    color: #666;
+}
+
+.info span {
+    font-weight: bold;
+    color: #333;
+}
